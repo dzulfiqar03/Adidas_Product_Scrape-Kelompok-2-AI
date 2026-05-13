@@ -81,6 +81,7 @@ async function getAIResponse(message, contextItems = [], behavior =
     null) {
     try {
         const contextBlock = ragEngine.buildContextBlock(contextItems);
+        let searchKey = "";
         if (!behavior) {
             behavior = loadBehavior() || {
                 system_instructions: 'Jawab hanya berdasarkan konteks yang diberikan. Jika tidak ada jawaban, tampilkan fallback.',
@@ -89,9 +90,172 @@ async function getAIResponse(message, contextItems = [], behavior =
                 language: 'id'
             };
         }
-        // jika tidak ada konteks yang relevan, kembalikan fallback tanpa memanggil LLM
         if (!contextBlock || contextItems.length === 0) {
-            return behavior.fallback_response || 'Mohon maaf, untuk item itu belum ada di toko kami.';
+            const userQuery = message.toLowerCase().trim(); // Gunakan message.body agar konsisten dengan kodinganmu
+            const knowledge = loadKnowledge();
+            const matchedKeyword = Object.keys(knowledge.responses).find(key =>
+                userQuery.includes(key.toLowerCase())
+            );
+
+            if (matchedKeyword) {
+                return knowledge.responses[matchedKeyword];
+            }
+
+            const isProductQuery = userQuery.includes("produk") ||
+                userQuery.toLowerCase().includes("daftar") ||
+                userQuery.toLowerCase().includes("tas") ||
+                userQuery.toLowerCase().includes("bag") ||
+                userQuery.toLowerCase().includes("topi") ||
+                userQuery.toLowerCase().includes("aksesoris") ||
+                userQuery.toLowerCase().includes("murah") ||
+                userQuery.toLowerCase().includes("termurah") ||
+                userQuery.toLowerCase().includes("dibawah") ||
+                userQuery.toLowerCase().includes("kurang dari") ||
+                userQuery.toLowerCase().includes("mahal") ||
+                userQuery.toLowerCase().includes("termahal") ||
+                userQuery.toLowerCase().includes("diatas") ||
+                userQuery.toLowerCase().includes("lebih dari") ||
+                userQuery.toLowerCase().includes("terbaik") ||
+                userQuery.toLowerCase().includes("rekomendasi") ||
+                userQuery.toLowerCase().includes("terlaris") ||
+                userQuery.toLowerCase().includes("laris") ||
+                userQuery.toLowerCase().includes("paling laris");
+
+            if (isProductQuery) {
+                const aksesorisDocs = datasetManager.getDatasetDocuments('accesories');
+                if (aksesorisDocs.length > 0) {
+                    // Logika Filter Tas/Bag
+                    const isSearchingBag = userQuery.toLowerCase().includes("tas") || userQuery.toLowerCase().includes("bag");
+                    const isSearchingHat = userQuery.toLowerCase().includes("cap") || userQuery.toLowerCase().includes("hat") || userQuery.toLowerCase().includes("topi");
+                    const isMurah = userQuery.toLowerCase().includes("murah") || userQuery.toLowerCase().includes("dibawah") || userQuery.toLowerCase().includes("kurang dari") || userQuery.toLowerCase().includes("termurah");
+                    const isMahal = userQuery.toLowerCase().includes("mahal") || userQuery.toLowerCase().includes("diatas") || userQuery.toLowerCase().includes("lebih dari") || userQuery.toLowerCase().includes("termahal");
+                    const isRekomendasi = userQuery.toLowerCase().includes("terbaik") || userQuery.toLowerCase().includes("rekomendasi");
+                    const isLaris = userQuery.toLowerCase().includes("terlaris") || userQuery.toLowerCase().includes("laris") || userQuery.toLowerCase().includes("paling laris");
+                    const isRateTinggi = userQuery.toLowerCase().includes("rating tertinggi") || userQuery.toLowerCase().includes("tinggi");
+                    const isRateRendah = userQuery.toLowerCase().includes("rating terendah") || userQuery.toLowerCase().includes("rendah");
+
+                    if (isSearchingBag) {
+                        searchKey = 'bag'
+                    } else if (isSearchingHat) {
+                        searchKey = 'hat'
+                    } else if (isMurah) {
+                        searchKey = 'murah'
+                    } else if (isMahal) {
+                        searchKey = 'mahal'
+                    } else if (isRekomendasi) {
+                        searchKey = 'rekomendasi'
+                    } else if (isLaris) {
+                        searchKey = 'laris'
+                    } else if (isRateTinggi) {
+                        searchKey = 'rateTinggi'
+                    } else if (isRateRendah) {
+                        searchKey = 'rateRendah'
+                    }
+
+                    console.log(aksesorisDocs)
+
+                    const listAksesoris = aksesorisDocs
+                        .map(doc => {
+                            const rawText = doc.text.split('\n');
+
+                            const titleProduct = rawText.find(l => l.includes('whitespace-normal:')) || "";
+                            let nama = titleProduct.replace(/whitespace-normal:/gi, "").replace(/"/g, "").trim() || (rawText || "").replace(/whitespace-normal:/gi, "").replace(/"/g, "").trim();
+
+                            const hargaLine = rawText.find(l => l.includes('font-medium 2:')) || "";
+
+                            const hargaRaw = hargaLine.replace('font-medium 2:', '').replace(/[^0-9]/g, "");
+                            const harga = parseInt(hargaRaw, 10) || 0;
+
+                            const ratingLine = rawText.find(l => l.includes('inline-block:')) || "";
+                            const rateRaw = ratingLine.replace('inline-block:', '').replace(/[^0-9.]/g, "").trim();
+                            const rate = parseFloat(rateRaw) || 0;
+
+                            const larisLin = rawText.find(l => l.includes('truncate:')) || "";
+                            const larisRaw = larisLin.replace('truncate:', '').replace(/[^0-9]/g, "");
+                            const laris = parseInt(larisRaw, 10) || 0;
+                            return { nama, harga, rate, laris };
+                        })
+                        .filter(item => {
+                            if (searchKey === 'bag') {
+                                return item.nama.toLowerCase().includes('bag') || item.nama.toLowerCase().includes('tas');
+                            }
+
+                            else if (searchKey === 'hat') {
+                                return item.nama.toLowerCase().includes('hat') || item.nama.toLowerCase().includes('cap');
+                            }
+                            return true; // Tampilkan semua jika cuma ketik "daftar produk"
+                        }).sort((a, b) => {
+                            if (searchKey === 'murah') {
+                                return a.harga - b.harga
+                            } else if (searchKey === 'mahal') {
+                                return b.harga - a.harga
+                            } else if (searchKey === 'rekomendasi') {
+                                if (b.rate !== a.rate) {
+                                    return b.rate - a.rate;
+                                }
+                                if (b.laris !== a.laris) {
+                                    return b.laris - a.laris;
+                                }
+                                return a.harga - b.harga
+                            } else if (searchKey === 'laris') {
+                                return b.laris - a.laris;
+                            } else if (searchKey === 'rateTinggi') {
+                                return b.rate - a.rate;
+                            } else if (searchKey === 'rateRendah') {
+                                return a.rate - b.rate;
+                            }
+                            return true
+                        })
+                        .map((item, idx) => {
+
+                            const formatHarga = new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                            }).format(item.harga);
+
+                            if (searchKey === 'rekomendasi') {
+                                return `${idx + 1}. ${item.nama} - ${formatHarga}, Rating ⭐ ${item.rate.toFixed(1)} || Terjual ${item.laris} item`
+
+                            } else if (searchKey === 'laris') {
+                                return `${idx + 1}. ${item.nama} - ${formatHarga} || Terjual ${item.laris} item`
+
+                            } else if (searchKey === 'rateTinggi' || searchKey === 'rateRendah') {
+                                return `${idx + 1}. ${item.nama} - ${formatHarga} ||  Rating ⭐ ${item.rate.toFixed(1)}`
+
+                            } else {
+                                return `${idx + 1}. ${item.nama} - ${formatHarga}`
+
+                            }
+                        })
+                        .slice(0, 15)
+                        .join('\n');
+
+                    if (listAksesoris) {
+                        if (searchKey === 'murah') {
+                            return `Berikut daftar koleksi aksesoris termurah kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+
+                        } else if (searchKey === 'mahal') {
+                            return `Berikut daftar koleksi aksesoris termahal kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+
+                        } else if (searchKey === 'rekomendasi') {
+                            return `Berikut rekomendasi aksesoris kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+                        }
+                        else if (searchKey === 'laris') {
+                            return `Berikut aksesoris kami yang terlaris:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+
+                        }
+                        else if (searchKey === 'rateTinggi') {
+                            return `Berikut aksesoris kami yang memiliki rating tertinggi:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+
+                        } else if (searchKey === 'rateRendah') {
+                            return `Berikut aksesoris kami yang memiliki rating terendah:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+
+                        }
+                        return `Berikut daftar koleksi aksesoris kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+                    }
+                }
+            }
         }
         const systemParts = [];
         if (behavior.system_instructions)
@@ -182,14 +346,14 @@ function initializeClient() {
         isReady = false;
         client = null;
     });
-    const handleIncomingMessage = async (msg, eventName) => {
+    const handleIncomingMessage = async (message, eventName) => {
         try {
             console.log(
-                ` ${eventName} event: from=${msg.from}, fromMe=${msg.fromMe},
-body=${JSON.stringify(msg.body)}`
+                ` ${eventName} event: from=${message.from}, fromMe=${message.fromMe},
+body=${JSON.stringify(message.body)}`
             );
-            const messageId = msg && msg.id && msg.id._serialized ?
-                msg.id._serialized : null;
+            const messageId = message && message.id && message.id._serialized ?
+                message.id._serialized : null;
             if (messageId) {
                 if (handledMessageIds.has(messageId)) {
                     console.log('↪ Ignoring duplicate event for same message');
@@ -199,35 +363,50 @@ body=${JSON.stringify(msg.body)}`
                 setTimeout(() => handledMessageIds.delete(messageId), 5 * 60 *
                     1000);
             }
-            if (msg.fromMe) {
+            if (message.fromMe) {
                 console.log(' Ignoring self-sent message to avoid reply loop');
                 return;
             }
-            const isPersonalChat = msg.from.endsWith('@c.us') ||
-                msg.from.endsWith('@lid');
-            const isNotStatus = !msg.from.endsWith('@status');
+            const isPersonalChat = message.from.endsWith('@c.us') ||
+                message.from.endsWith('@lid');
+            const isNotStatus = !message.from.endsWith('@status');
             if (!isPersonalChat || !isNotStatus) {
                 console.log(` Ignoring non-personal or status message:
-from=${msg.from}`);
+from=${message.from}`);
                 return;
             }
-            console.log(` Personal Message from ${msg.from}: ${msg.body}`);
+            console.log(` Personal Message from ${message.from}: ${message.body}`);
             try {
-                await msg.getChat().then(chat => chat.sendStateTyping());
+                await message.getChat().then(chat => chat.sendStateTyping());
             } catch (e) {
                 console.log('Note: Cannot show typing indicator');
             }
             const knowledge = loadKnowledge();
-            const keyword = msg.body.toLowerCase().trim();
+            const keyword = message.body.toLowerCase().trim();
 
             if (knowledge.responses[keyword]) {
-                await msg.reply(knowledge.responses[keyword]);
+                await message.reply(knowledge.responses[keyword]);
                 console.log(' Replied with FAQ keyword match');
             } else {
-                const allDocuments = datasetManager.getAllDocuments();
+                const aksesorisKeywords = ['aksesoris', 'accessories', 'topi', 'tas', 'kaos kaki', 'bola'];
+                const isTanyaAksesoris = aksesorisKeywords.some(k => message.body.toLowerCase().includes(k));
+
+                let contextDocuments;
+
+                if (isTanyaAksesoris) {
+
+                    console.log("🔒 Filtering context: Only accesories.csv");
+                    contextDocuments = datasetManager.getDatasetDocuments('accesories');
+
+                } else {
+
+                    contextDocuments = datasetManager.getAllDocuments();
+                }
+
+
                 const contextItems = ragEngine.retrieveContext(
-                    msg.body,
-                    allDocuments,
+                    message.body,
+                    contextDocuments, // Gunakan hasil filter tadi
                     Number(process.env.RAG_TOP_K || 3)
                 );
                 console.log(`🔍 RAG Retrieved ${contextItems.length} relevant
@@ -239,27 +418,27 @@ context(s)`);
                 try {
                     const behavior = loadBehavior();
                     const aiResponse = await Promise.race([
-                        getAIResponse(msg.body, contextItems, behavior),
+                        getAIResponse(message.body, contextItems, behavior),
                         timeoutPromise
                     ]);
                     if (aiResponse) {
-                        await msg.reply(aiResponse);
+                        await message.reply(aiResponse);
                         console.log(` Replied with AI response (RAG contexts:
 ${contextItems.length})`);
                     } else {
-                        await msg.reply('Maaf, saya tidak memahami pesan Anda. Silakan coba lagi.');
+                        await message.reply('Maaf, saya tidak memahami pesan Anda. Silakan coba lagi.');
                     }
                 } catch (aiError) {
                     console.error('AI Error:', aiError.message);
-                    await msg.reply('Maaf, terjadi kesalahan dalam memproses pesan. Silakan coba lagi.');
+                    await message.reply('Maaf, terjadi kesalahan dalam memproses pesan. Silakan coba lagi.');
                 }
             }
         } catch (error) {
             console.error('Message handler error:', error.message);
         }
     };
-    client.on('message', (msg) => handleIncomingMessage(msg, 'message'));
-    client.on('message_create', (msg) => handleIncomingMessage(msg,
+    client.on('message', (message) => handleIncomingMessage(message, 'message'));
+    client.on('message_create', (message) => handleIncomingMessage(message,
         'message_create'));
 
     return client;
@@ -459,9 +638,17 @@ ${datasetManager.listDatasets().length}`);
 });
 
 
-app.get('/welcome-page', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/Welcome.html'));
+app.get('/product', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/Product.html'));
 });
+
+
+
+
+app.get('/home', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Public/WelcomePage.html'));
+});
+
 
 app.get('/api/baca-csv', async (req, res) => {
 
@@ -537,3 +724,19 @@ app.get('/api/baca-csv', async (req, res) => {
         });
     }
 });
+
+app.get('/api/bot/info', (req, res) => {
+    if (isReady && client && client.info) {
+        // Mengambil nomor dari client.info.wid.user
+        res.json({
+            success: true,
+            number: client.info.wid.user
+        });
+    } else {
+        res.json({
+            success: false,
+            message: 'Bot belum login'
+        });
+    }
+});
+

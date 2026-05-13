@@ -1,6 +1,15 @@
 {
-  "keywords": {},
+  "config": {
+    "source": "dataset.csv",
+    "category_filter": "aksesoris"
+  },
+  "keywords": {
+    "cek_produk": ["katalog", "daftar harga", "pilihan", "model", "apa aja"],
+    "detail_produk": ["bahan", "ukuran", "warna", "stok"]
+  },
   "responses": {
-    "halo": "Selamat datang, bisa saya bantu?"
+    "cek produk": "Kami punya berbagai aksesori menarik. Berdasarkan data terbaru, kami punya koleksi [kategori_produk]. Kakak tertarik yang mana?",
+    "error_stok": "Maaf kak, untuk saat ini produk tersebut sedang kosong di dataset kami. Mau cari model lain?",
+    "halo": "Halo! Selamat datang di Adidas Official Store, silakan tanya mengenai Produk Aksesoris kami. Kami dengan senang hati membantu. Disini anda bisa menanyakan mengenai berbagai macam topik, seperti:\n1. Rekomendasi Produk kami,\n2. Produk termahal di toko kami,\n3. Produk termurah di toko kami,\n4. Penjualan Produk yang terlaris di toko kami,\n5. Produk dengan rating terendah,\n6. Produk dengan rating tertinggi,\nYuk tanyakan sesuai dengan keinginan dan kebutuhan mu, siap melayani 24 jam dengan senang hati. Anda Puas Kami Segan🥰."
   }
 }

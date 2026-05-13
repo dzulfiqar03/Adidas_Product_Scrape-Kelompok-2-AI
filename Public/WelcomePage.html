@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <title>Adidas - Ecommerce Store</title>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <!-- Navbar Premium -->
+    <nav
+      class="sticky top-0 z-50 bg-gray-900/90 backdrop-blur-md border-b border-white/10 shadow-xl"
+    >
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-20 items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="bg-white p-1 rounded">
+              <svg
+                class="w-8 h-8 text-black"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M24 20.985h-4.492l-2.152-3.415-2.135 3.415H10.74l4.287-6.83-4.287-6.83h4.492l2.135 3.415 2.152-3.415H24l-4.287 6.83L24 20.985zM7.5 20.985H3.008L0 16.21l3.008-4.775L0 6.66h4.492l3.008 4.775-3.008 4.775 3.008 4.775z"
+                />
+              </svg>
+            </div>
+            <h1
+              class="text-white font-extrabold text-xl tracking-tighter uppercase"
+            >
+              ADIDAS
+            </h1>
+          </div>
+          <div class="hidden sm:block">
+            <div
+              id="nav-link"
+              class="flex space-x-6 text-sm font-medium text-gray-300"
+            >
+              <!-- Link Navigasi masuk ke sini -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-gray-900 py-16 sm:py-24 overflow-hidden">
+      <div
+        class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"
+      ></div>
+      <div class="relative mx-auto max-w-7xl px-4 text-center">
+        <h1
+          class="text-4xl font-extrabold tracking-tight text-white sm:text-6xl"
+        >
+          Adidas <span class="text-indigo-500">Catalog Collection</span>
+        </h1>
+        <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto">
+          Temukan koleksi perlengkapan olahraga terbaik kami. Hubungi admin
+          langsung melalui WhatsApp untuk pemesanan cepat dan informasi stok
+          terbaru.
+        </p>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-12">
+      <section class="bg-white rounded-2xl shadow-2xl p-8 mb-24">
+        <div
+          class="flex items-center justify-between border-b border-gray-100 pb-6 mb-8"
+        >
+          <h2 class="text-2xl font-bold text-gray-900">
+            Pilih Kategori Produk
+          </h2>
+          <span
+            class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium"
+            id="category-count"
+            >Loading...</span
+          >
+        </div>
+
+        <!-- Container Tombol Kategori -->
+        <div
+          id="button-container"
+          class="grid grid-cols-1 gap-6"
+        >
+          <!-- Skeleton Loader -->
+          <div class="animate-pulse bg-gray-100 h-32 rounded-xl"></div>
+          <div class="animate-pulse bg-gray-100 h-32 rounded-xl"></div>
+          <div class="animate-pulse bg-gray-100 h-32 rounded-xl"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-12">
+      <div class="text-center text-gray-500 text-sm">
+        &copy; 2026 Adidas Partner Store. All rights reserved.
+      </div>
+    </footer>
+
+    <script>
+      async function loadWelcomePage() {
+        try {
+          // 1. Ambil info bot
+          const infoRes = await fetch("/api/bot/info");
+          const infoData = await infoRes.json();
+          const botNumber = infoData.success ? infoData.number : "628xxx";
+
+          // 2. Ambil datasets
+          const datasetRes = await fetch("/api/datasets");
+          const datasetData = await datasetRes.json();
+
+          const container = document.getElementById("button-container");
+          const countBadge = document.getElementById("category-count");
+          container.innerHTML = "";
+          countBadge.innerText = `${datasetData.datasets.length} Kategori`;
+
+          // 3. Render Card Kategori
+          datasetData.datasets.forEach((dataset) => {
+            const card = document.createElement("a");
+            const pesan = encodeURIComponent(
+              `Halo kak, Saya mau tanya tentang katalog: ${dataset.name}`,
+            );
+
+            card.href = `https://wa.me/${botNumber}?text=${pesan}`;
+            card.target = "_blank";
+            card.className = `
+                        group relative flex flex-col items-center justify-center p-8 
+                        bg-white border border-gray-200 rounded-2xl shadow-sm
+                        transition-all duration-300 hover:shadow-xl hover:-translate-y-1
+                        hover:border-green-500 overflow-hidden
+                    `;
+
+            card.innerHTML = `
+                        <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-100 transition-opacity">
+                            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-500 transition-colors">
+                            <svg class="w-6 h-6 text-green-600 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.309 1.656zm6.224-3.52c1.54.914 3.51 1.403 5.462 1.404 5.277 0 9.571-4.293 9.574-9.574 0-2.559-1.001-4.965-2.813-6.777-1.813-1.813-4.218-2.814-6.776-2.814-5.276 0-9.57 4.293-9.574 9.574-.001 2.096.548 4.14 1.588 5.945l-1.012 3.7 3.805-.998z"/></svg>
+                        </div>
+                        <span class="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">WhatsApp Catalog</span>
+                        <h3 class="text-xl font-extrabold text-gray-900 group-hover:text-green-600 transition-colors">${dataset.name.toUpperCase()}</h3>
+                    `;
+
+            container.appendChild(card);
+          });
+        } catch (err) {
+          console.error("Gagal memuat data:", err);
+        }
+      }
+
+      loadWelcomePage();
+    </script>
+
+        <script src="../src/js/Components/nav.js"></script>
+    <script src="../src/js/Components/filterCategories.js"></script>
+  </body>
+</html>

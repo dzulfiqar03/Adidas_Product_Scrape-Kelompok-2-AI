@@ -15,6 +15,22 @@ async function readCsv() {
 }
 readCsv();
 
+window.OnClickWA = async function (productName) {
+  try {
+    const infoRes = await fetch('/api/bot/info');
+    const infoData = await infoRes.json();
+
+    // Gunakan nomor hasil scan, atau fallback ke nomor default jika bot offline
+    const botNumber = infoData.success ? infoData.number : "628xxx";
+
+    const pesanAwal = "Halo kak, Saya mau tanya tentang produk " + productName;
+    const pesanEncoded = encodeURIComponent(pesanAwal);
+
+    window.open(`https://wa.me/${botNumber}?text=${pesanEncoded}"`, "_blank");
+  } catch (error) {
+
+  }
+}
 window.renderSection = function (categoryName) {
   try {
     const allData = globalData.data?.[categoryName][0].results || [];
@@ -26,6 +42,23 @@ window.renderSection = function (categoryName) {
         .map(
           (baris) => `
                       <div id="${categoryName}" class="group relative">
+
+        <div class="absolute m-2 flex z-10">
+          <button    onclick="window.OnClickWA('${baris["whitespace-normal"].replace(/'/g, "\\'")}')"
+            class="w-8 h-8 md:w-8 md:h-8 bg-gray-900 hover:bg-black rounded-full flex items-center justify-center text-white shadow-xl transition-all active:scale-95"
+          >
+            <!-- Sun Icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-6 h-6 text-white fill-current transition-all duration-300"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"
+              ></path>
+            </svg>
+          </button>
+        </div>
         <img 
           src="${baris["_image_yazkc_11 src"]}" 
                 alt="Gambar ${baris["whitespace-normal"]}" 
@@ -49,6 +82,8 @@ window.renderSection = function (categoryName) {
           </div>
           <p class="text-sm m-auto font-medium text-gray-900">${baris["font-medium 2"]}</p>
         </div>
+
+
       </div>
 
             `,
