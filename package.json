@@ -13,7 +13,7 @@
     "groq",
     "ai"
   ],
-  "author": "",
+  "author": "Kelompok 2",
   "license": "MIT",
   "dependencies": {
     "@tailwindcss/cli": "^4.3.0",

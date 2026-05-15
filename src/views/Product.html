@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Adidas - Ecommerce Store</title>
+  </head>
+  <body class="">
+    <nav
+      class="sticky top-0 z-50 bg-gray-900/90 backdrop-blur-md border-b border-white/10 shadow-xl"
+    >
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-20 items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="bg-white p-1 rounded">
+              <svg
+                class="w-8 h-8 text-black"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M24 20.985h-4.492l-2.152-3.415-2.135 3.415H10.74l4.287-6.83-4.287-6.83h4.492l2.135 3.415 2.152-3.415H24l-4.287 6.83L24 20.985zM7.5 20.985H3.008L0 16.21l3.008-4.775L0 6.66h4.492l3.008 4.775-3.008 4.775 3.008 4.775z"
+                />
+              </svg>
+            </div>
+            <h1
+              class="text-white font-extrabold text-xl tracking-tighter uppercase"
+            >
+              ADIDAS
+            </h1>
+          </div>
+          <div class="hidden sm:block">
+            <div
+              id="nav-link"
+              class="flex space-x-6 text-sm font-medium text-gray-300"
+            >
+              <!-- Link Navigasi masuk ke sini -->
+            </div>
+          </div>
+
+          <div class="sm:hidden block">
+            <div
+              id="nav-linkMobile"
+              class="flex space-x-6 text-sm font-medium text-gray-300"
+            >
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+      <div class="bg-white">
+        <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div
+            class="flex items-baseline justify-between border-b border-gray-200 pb-6"
+          >
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">
+              Adidas Products
+            </h1>
+          </div>
+
+          <section aria-labelledby="products-heading" class="pt-6 pb-24">
+            <h2 id="products-heading" class="sr-only">Adidas Products</h2>
+
+            <div class="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
+              <!-- Filters -->
+              <form class="hidden lg:block">
+                <h3 class="sr-only">Categories</h3>
+                <ul
+                  id="listCategory"
+                  role="list"
+                  class="space-y-4 border-b border-gray-200 pb-6 text-sm font-medium text-gray-900"
+                ></ul>
+              </form>
+
+              <!-- Product grid -->
+
+              <div class="bg-white lg:col-span-3">
+                <div
+                  id="card"
+                  class="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8"
+                ></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="../Src/js/Components/nav.js"></script>
+    <script src="../Src/js/Components/filterCategories.js"></script>
+    <script src="../Src/js/Services/readCsv.js"></script>
+  </body>
+</html>
