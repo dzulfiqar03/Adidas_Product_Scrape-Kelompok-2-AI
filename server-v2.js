@@ -10,6 +10,12 @@ const qrcode = require('qrcode-terminal');
 const Groq = require('groq-sdk');
 const RAGEngine = require('./lib/rag');
 const DatasetManager = require('./lib/dataset');
+
+const WelcomeController = require('./Controllers/WelcomeController');
+const SystemConfigurationController = require('./Controllers/SystemConfigurationController');
+const ProductController = require('./Controllers/ProductController');
+const AccesoriesController = require('./Controllers/Category/AccesoriesController');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors());
@@ -23,6 +29,12 @@ const groq = new Groq({
 });
 const ragEngine = new RAGEngine();
 const datasetManager = new DatasetManager();
+
+const welcomeController = new WelcomeController();
+const systemConfController = new SystemConfigurationController();
+const productController = new ProductController();
+const accesoriesController = new AccesoriesController();
+
 let client = null;
 let qrCodeData = null;
 let isReady = false;
@@ -101,188 +113,46 @@ async function getAIResponse(message, contextItems = [], behavior =
                 return knowledge.responses[matchedKeyword];
             }
 
-            const isProductQuery = userQuery.includes("produk") ||
-                userQuery.toLowerCase().includes("daftar") ||
-                userQuery.toLowerCase().includes("tas") ||
-                userQuery.toLowerCase().includes("bag") ||
-                userQuery.toLowerCase().includes("topi") ||
-                userQuery.toLowerCase().includes("aksesoris") ||
-                userQuery.toLowerCase().includes("murah") ||
-                userQuery.toLowerCase().includes("termurah") ||
-                userQuery.toLowerCase().includes("dibawah") ||
-                userQuery.toLowerCase().includes("kurang dari") ||
-                userQuery.toLowerCase().includes("mahal") ||
-                userQuery.toLowerCase().includes("termahal") ||
-                userQuery.toLowerCase().includes("diatas") ||
-                userQuery.toLowerCase().includes("lebih dari") ||
-                userQuery.toLowerCase().includes("terbaik") ||
-                userQuery.toLowerCase().includes("rekomendasi") ||
-                userQuery.toLowerCase().includes("terlaris") ||
-                userQuery.toLowerCase().includes("laris") ||
-                userQuery.toLowerCase().includes("paling laris");
+            const isCategoryQuery = userQuery.includes("daftar aksesoris") 
 
-            if (isProductQuery) {
+            // LANJUTKAN DISINI
+            if (isCategoryQuery) {
                 const aksesorisDocs = datasetManager.getDatasetDocuments('accesories');
-                if (aksesorisDocs.length > 0) {
-                    // Logika Filter Tas/Bag
-                    const isSearchingBag = userQuery.toLowerCase().includes("tas") || userQuery.toLowerCase().includes("bag");
-                    const isSearchingHat = userQuery.toLowerCase().includes("cap") || userQuery.toLowerCase().includes("hat") || userQuery.toLowerCase().includes("topi");
-                    const isMurah = userQuery.toLowerCase().includes("murah") || userQuery.toLowerCase().includes("dibawah") || userQuery.toLowerCase().includes("kurang dari") || userQuery.toLowerCase().includes("termurah");
-                    const isMahal = userQuery.toLowerCase().includes("mahal") || userQuery.toLowerCase().includes("diatas") || userQuery.toLowerCase().includes("lebih dari") || userQuery.toLowerCase().includes("termahal");
-                    const isRekomendasi = userQuery.toLowerCase().includes("terbaik") || userQuery.toLowerCase().includes("rekomendasi");
-                    const isLaris = userQuery.toLowerCase().includes("terlaris") || userQuery.toLowerCase().includes("laris") || userQuery.toLowerCase().includes("paling laris");
-                    const isRateTinggi = userQuery.toLowerCase().includes("rating tertinggi") || userQuery.toLowerCase().includes("tinggi");
-                    const isRateRendah = userQuery.toLowerCase().includes("rating terendah") || userQuery.toLowerCase().includes("rendah");
+                const daftarProdukAksesoris = await accesoriesController.getChatbotPage(userQuery, searchKey, aksesorisDocs);
 
-                    if (isSearchingBag) {
-                        searchKey = 'bag'
-                    } else if (isSearchingHat) {
-                        searchKey = 'hat'
-                    } else if (isMurah) {
-                        searchKey = 'murah'
-                    } else if (isMahal) {
-                        searchKey = 'mahal'
-                    } else if (isRekomendasi) {
-                        searchKey = 'rekomendasi'
-                    } else if (isLaris) {
-                        searchKey = 'laris'
-                    } else if (isRateTinggi) {
-                        searchKey = 'rateTinggi'
-                    } else if (isRateRendah) {
-                        searchKey = 'rateRendah'
-                    }
-
-                    console.log(aksesorisDocs)
-
-                    const listAksesoris = aksesorisDocs
-                        .map(doc => {
-                            const rawText = doc.text.split('\n');
-
-                            const titleProduct = rawText.find(l => l.includes('whitespace-normal:')) || "";
-                            let nama = titleProduct.replace(/whitespace-normal:/gi, "").replace(/"/g, "").trim() || (rawText || "").replace(/whitespace-normal:/gi, "").replace(/"/g, "").trim();
-
-                            const hargaLine = rawText.find(l => l.includes('font-medium 2:')) || "";
-
-                            const hargaRaw = hargaLine.replace('font-medium 2:', '').replace(/[^0-9]/g, "");
-                            const harga = parseInt(hargaRaw, 10) || 0;
-
-                            const ratingLine = rawText.find(l => l.includes('inline-block:')) || "";
-                            const rateRaw = ratingLine.replace('inline-block:', '').replace(/[^0-9.]/g, "").trim();
-                            const rate = parseFloat(rateRaw) || 0;
-
-                            const larisLin = rawText.find(l => l.includes('truncate:')) || "";
-                            const larisRaw = larisLin.replace('truncate:', '').replace(/[^0-9]/g, "");
-                            const laris = parseInt(larisRaw, 10) || 0;
-                            return { nama, harga, rate, laris };
-                        })
-                        .filter(item => {
-                            if (searchKey === 'bag') {
-                                return item.nama.toLowerCase().includes('bag') || item.nama.toLowerCase().includes('tas');
-                            }
-
-                            else if (searchKey === 'hat') {
-                                return item.nama.toLowerCase().includes('hat') || item.nama.toLowerCase().includes('cap');
-                            }
-                            return true; // Tampilkan semua jika cuma ketik "daftar produk"
-                        }).sort((a, b) => {
-                            if (searchKey === 'murah') {
-                                return a.harga - b.harga
-                            } else if (searchKey === 'mahal') {
-                                return b.harga - a.harga
-                            } else if (searchKey === 'rekomendasi') {
-                                if (b.rate !== a.rate) {
-                                    return b.rate - a.rate;
-                                }
-                                if (b.laris !== a.laris) {
-                                    return b.laris - a.laris;
-                                }
-                                return a.harga - b.harga
-                            } else if (searchKey === 'laris') {
-                                return b.laris - a.laris;
-                            } else if (searchKey === 'rateTinggi') {
-                                return b.rate - a.rate;
-                            } else if (searchKey === 'rateRendah') {
-                                return a.rate - b.rate;
-                            }
-                            return true
-                        })
-                        .map((item, idx) => {
-
-                            const formatHarga = new Intl.NumberFormat('id-ID', {
-                                style: 'currency',
-                                currency: 'IDR',
-                                minimumFractionDigits: 0
-                            }).format(item.harga);
-
-                            if (searchKey === 'rekomendasi') {
-                                return `${idx + 1}. ${item.nama} - ${formatHarga}, Rating ⭐ ${item.rate.toFixed(1)} || Terjual ${item.laris} item`
-
-                            } else if (searchKey === 'laris') {
-                                return `${idx + 1}. ${item.nama} - ${formatHarga} || Terjual ${item.laris} item`
-
-                            } else if (searchKey === 'rateTinggi' || searchKey === 'rateRendah') {
-                                return `${idx + 1}. ${item.nama} - ${formatHarga} ||  Rating ⭐ ${item.rate.toFixed(1)}`
-
-                            } else {
-                                return `${idx + 1}. ${item.nama} - ${formatHarga}`
-
-                            }
-                        })
-                        .slice(0, 15)
-                        .join('\n');
-
-                    if (listAksesoris) {
-                        if (searchKey === 'murah') {
-                            return `Berikut daftar koleksi aksesoris termurah kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-
-                        } else if (searchKey === 'mahal') {
-                            return `Berikut daftar koleksi aksesoris termahal kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-
-                        } else if (searchKey === 'rekomendasi') {
-                            return `Berikut rekomendasi aksesoris kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-                        }
-                        else if (searchKey === 'laris') {
-                            return `Berikut aksesoris kami yang terlaris:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-
-                        }
-                        else if (searchKey === 'rateTinggi') {
-                            return `Berikut aksesoris kami yang memiliki rating tertinggi:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-
-                        } else if (searchKey === 'rateRendah') {
-                            return `Berikut aksesoris kami yang memiliki rating terendah:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-
-                        }
-                        return `Berikut daftar koleksi aksesoris kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
-                    }
-                }
-            }
-        }
-        const systemParts = [];
-        if (behavior.system_instructions)
-            systemParts.push(behavior.system_instructions);
-        systemParts.push(`Jawab hanya menggunakan konteks berikut. Jika
+                return daftarProdukAksesoris;
+            } else {
+                const systemParts = [];
+                if (behavior.system_instructions)
+                    systemParts.push(behavior.system_instructions);
+                systemParts.push(`Jawab hanya menggunakan konteks berikut. Jika
 konteks tidak memadai, jawab: ${behavior.fallback_response}`);
 
-        systemParts.push(`Jawab maksimal ${behavior.max_sentences || 2}
+                systemParts.push(`Jawab maksimal ${behavior.max_sentences || 2}
 kalimat. Bahasa: ${behavior.language || 'id'}.`);
-        const systemMessage = systemParts.join(' ');
-        const userMessage = `Konteks:\n${contextBlock}\n\nPertanyaan:
+                const systemMessage = systemParts.join(' ');
+                const userMessage = `Konteks:\n${contextBlock}\n\nPertanyaan:
 ${message}`;
-        const completion = await groq.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userMessage }
-            ],
-            model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-            max_tokens: Number(process.env.GROQ_MAX_TOKENS || 200),
-            temperature: 0.1
-        });
-        return completion.choices[0].message.content;
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: systemMessage },
+                        { role: 'user', content: userMessage }
+                    ],
+                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                    max_tokens: Number(process.env.GROQ_MAX_TOKENS || 200),
+                    temperature: 0.1
+                });
+                return completion.choices[0].message.content;
+            }
+        }
+
     } catch (error) {
         console.error('Error getting AI response:', error.message);
         return null;
     }
 }
+
+
 async function startBot() {
     if (isReady || isInitializing) {
         return { success: false, message: 'Bot sudah berjalan atau sedang dimulai' };
@@ -639,14 +509,12 @@ ${datasetManager.listDatasets().length}`);
 
 
 app.get('/product', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/Product.html'));
+    productController.index(req, res, path)
 });
 
 
-
-
 app.get('/home', (req, res) => {
-    res.sendFile(path.join(__dirname, 'Public/WelcomePage.html'));
+    welcomeController.index(req, res, path)
 });
 
 
@@ -726,17 +594,6 @@ app.get('/api/baca-csv', async (req, res) => {
 });
 
 app.get('/api/bot/info', (req, res) => {
-    if (isReady && client && client.info) {
-        // Mengambil nomor dari client.info.wid.user
-        res.json({
-            success: true,
-            number: client.info.wid.user
-        });
-    } else {
-        res.json({
-            success: false,
-            message: 'Bot belum login'
-        });
-    }
+    systemConfController.getBotInfo(req, res, isReady, client)
 });
 
