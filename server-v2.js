@@ -15,6 +15,7 @@ const WelcomeController = require('./Controllers/WelcomeController');
 const SystemConfigurationController = require('./Controllers/SystemConfigurationController');
 const ProductController = require('./Controllers/ProductController');
 const AccesoriesController = require('./Controllers/Category/AccesoriesController');
+const FootballController = require('./Controllers/Category/FootballController');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ const welcomeController = new WelcomeController();
 const systemConfController = new SystemConfigurationController();
 const productController = new ProductController();
 const accesoriesController = new AccesoriesController();
+const footballController = new FootballController();
 
 let client = null;
 let qrCodeData = null;
@@ -41,6 +43,7 @@ let isReady = false;
 let isCleaning = false;
 let isInitializing = false;
 const handledMessageIds = new Set();
+const userSessions = new Map();
 const knowledgeFile = path.join(__dirname, 'knowledge.json');
 const behaviorFile = path.join(__dirname, 'config', 'behavior.json');
 if (!fs.existsSync(knowledgeFile)) {
@@ -89,8 +92,7 @@ function saveBehavior(obj) {
         return false;
     }
 }
-async function getAIResponse(message, contextItems = [], behavior =
-    null) {
+async function getAIResponse(message, contextItems = [], behavior = null, activeSession = null) {
     try {
         const contextBlock = ragEngine.buildContextBlock(contextItems);
         let searchKey = "";
@@ -102,48 +104,64 @@ async function getAIResponse(message, contextItems = [], behavior =
                 language: 'id'
             };
         }
-        if (!contextBlock || contextItems.length === 0) {
-            const userQuery = message.toLowerCase().trim(); // Gunakan message.body agar konsisten dengan kodinganmu
-            const knowledge = loadKnowledge();
-            const matchedKeyword = Object.keys(knowledge.responses).find(key =>
-                userQuery.includes(key.toLowerCase())
-            );
 
-            if (matchedKeyword) {
-                return knowledge.responses[matchedKeyword];
+        const userQuery = message.toLowerCase().trim(); // Gunakan message.body agar konsisten dengan kodinganmu
+        const knowledge = loadKnowledge();
+        const matchedKeyword = Object.keys(knowledge.responses).find(key =>
+            userQuery.includes(key.toLowerCase())
+        );
+
+        let isCategoryQuery = userQuery.includes("daftar aksesoris") || userQuery.includes("katalog: accesories");
+        let isFootballQuery = userQuery.includes("daftar football") || userQuery.includes("daftar sepatu bola") || userQuery.includes("daftar jersey") || userQuery.includes("katalog: football");
+
+        if (activeSession === 'football') {
+            const footballKeywords = ['jersey', 'sepatu', 'boots', 'bola', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
+            if (userQuery.length < 50 && footballKeywords.some(k => userQuery.includes(k))) {
+                isFootballQuery = true;
+            }
+        } else if (activeSession === 'accesories') {
+            const accKeywords = ['tas', 'bag', 'topi', 'hat', 'cap', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
+            if (userQuery.length < 50 && accKeywords.some(k => userQuery.includes(k))) {
+                isCategoryQuery = true;
+            }
+        }
+
+        if (isCategoryQuery) {
+            const aksesorisDocs = datasetManager.getDatasetDocuments('accesories');
+            const daftarProdukAksesoris = await accesoriesController.getChatbotPage(userQuery, searchKey, aksesorisDocs);
+
+            return daftarProdukAksesoris;
+        } else if (isFootballQuery) {
+            const footballDocs = datasetManager.getDatasetDocuments('football');
+            const daftarProdukFootball = await footballController.getChatbotPage(userQuery, searchKey, footballDocs);
+
+            return daftarProdukFootball;
+        } else if (matchedKeyword) {
+            return knowledge.responses[matchedKeyword];
+        } else {
+            const systemParts = [];
+            if (behavior.system_instructions)
+                systemParts.push(behavior.system_instructions);
+            
+            if (activeSession) {
+                systemParts.push(`PENTING: Saat ini Anda berada di sesi kategori "${activeSession}". DILARANG KERAS menjawab tentang produk kategori lain. Jika pelanggan menanyakan produk di luar "${activeSession}", Anda WAJIB menjawab persis seperti ini: "Mohon maaf, saat ini Anda sedang berada di sesi kategori ${activeSession}. Jika Anda ingin berpindah dan melihat kategori produk yang lain, silakan klik pilihan kategori produk tersebut di menu website kami."`);
             }
 
-            const isCategoryQuery = userQuery.includes("daftar aksesoris") 
+            systemParts.push(`Jawab hanya menggunakan konteks berikut. Jika konteks tidak memadai, jawab: ${behavior.fallback_response}`);
 
-            // LANJUTKAN DISINI
-            if (isCategoryQuery) {
-                const aksesorisDocs = datasetManager.getDatasetDocuments('accesories');
-                const daftarProdukAksesoris = await accesoriesController.getChatbotPage(userQuery, searchKey, aksesorisDocs);
-
-                return daftarProdukAksesoris;
-            } else {
-                const systemParts = [];
-                if (behavior.system_instructions)
-                    systemParts.push(behavior.system_instructions);
-                systemParts.push(`Jawab hanya menggunakan konteks berikut. Jika
-konteks tidak memadai, jawab: ${behavior.fallback_response}`);
-
-                systemParts.push(`Jawab maksimal ${behavior.max_sentences || 2}
-kalimat. Bahasa: ${behavior.language || 'id'}.`);
-                const systemMessage = systemParts.join(' ');
-                const userMessage = `Konteks:\n${contextBlock}\n\nPertanyaan:
-${message}`;
-                const completion = await groq.chat.completions.create({
-                    messages: [
-                        { role: 'system', content: systemMessage },
-                        { role: 'user', content: userMessage }
-                    ],
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    max_tokens: Number(process.env.GROQ_MAX_TOKENS || 200),
-                    temperature: 0.1
-                });
-                return completion.choices[0].message.content;
-            }
+            systemParts.push(`Jawab maksimal ${behavior.max_sentences || 2} kalimat. Bahasa: ${behavior.language || 'id'}.`);
+            const systemMessage = systemParts.join('\n');
+            const userMessage = `Konteks:\n${contextBlock}\n\nPertanyaan:\n${message}`;
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemMessage },
+                    { role: 'user', content: userMessage }
+                ],
+                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                max_tokens: Number(process.env.GROQ_MAX_TOKENS || 200),
+                temperature: 0.1
+            });
+            return completion.choices[0].message.content;
         }
 
     } catch (error) {
@@ -258,15 +276,25 @@ from=${message.from}`);
                 await message.reply(knowledge.responses[keyword]);
                 console.log(' Replied with FAQ keyword match');
             } else {
-                const aksesorisKeywords = ['aksesoris', 'accessories', 'topi', 'tas', 'kaos kaki', 'bola'];
-                const isTanyaAksesoris = aksesorisKeywords.some(k => message.body.toLowerCase().includes(k));
+                if (keyword.includes("katalog: accesories") || keyword.includes("daftar aksesoris")) {
+                    userSessions.set(message.from, 'accesories');
+                } else if (keyword.includes("katalog: football") || keyword.includes("daftar football") || keyword.includes("daftar jersey") || keyword.includes("daftar sepatu bola")) {
+                    userSessions.set(message.from, 'football');
+                }
+
+                const activeSession = userSessions.get(message.from);
 
                 let contextDocuments;
 
-                if (isTanyaAksesoris) {
+                if (activeSession === 'accesories') {
 
-                    console.log("🔒 Filtering context: Only accesories.csv");
+                    console.log("🔒 Filtering context: Only accesories.csv (Session-locked)");
                     contextDocuments = datasetManager.getDatasetDocuments('accesories');
+
+                } else if (activeSession === 'football') {
+
+                    console.log("🔒 Filtering context: Only football.csv (Session-locked)");
+                    contextDocuments = datasetManager.getDatasetDocuments('football');
 
                 } else {
 
@@ -288,7 +316,7 @@ context(s)`);
                 try {
                     const behavior = loadBehavior();
                     const aiResponse = await Promise.race([
-                        getAIResponse(message.body, contextItems, behavior),
+                        getAIResponse(message.body, contextItems, behavior, activeSession),
                         timeoutPromise
                     ]);
                     if (aiResponse) {
