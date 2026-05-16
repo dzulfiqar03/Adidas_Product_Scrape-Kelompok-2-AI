@@ -91,21 +91,20 @@ class AccesoriesController {
                     }).format(item.harga);
 
                     if (searchKey === 'rekomendasi') {
-                        return `${idx + 1}. ${item.nama} - ${formatHarga}, Rating ⭐ ${item.rate.toFixed(1)} || Terjual ${item.laris} item`
+                        return `*${idx + 1}. ${item.nama}*\n└ Harga: ${formatHarga} | Rating ⭐ ${item.rate.toFixed(1)} | Terjual: ${item.laris}`;
 
                     } else if (searchKey === 'laris') {
-                        return `${idx + 1}. ${item.nama} - ${formatHarga} || Terjual ${item.laris} item`
+                        return `*${idx + 1}. ${item.nama}*\n└ Harga: ${formatHarga} | Terjual: ${item.laris}`;
 
                     } else if (searchKey === 'rateTinggi' || searchKey === 'rateRendah') {
-                        return `${idx + 1}. ${item.nama} - ${formatHarga} ||  Rating ⭐ ${item.rate.toFixed(1)}`
+                        return `*${idx + 1}. ${item.nama}*\n└ Harga: ${formatHarga} | Rating ⭐ ${item.rate.toFixed(1)}`;
 
                     } else {
-                        return `${idx + 1}. ${item.nama} - ${formatHarga}`
+                        return `*${idx + 1}. ${item.nama}*\n└ Harga: ${formatHarga}`;
 
                     }
                 })
-                .slice(0, 15)
-                .join('\n');
+                .join('\n\n');
 
             if (listAksesoris) {
                 if (searchKey === 'murah') {
@@ -127,8 +126,20 @@ class AccesoriesController {
                 } else if (searchKey === 'rateRendah') {
                     return `Berikut aksesoris kami yang memiliki rating terendah:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
 
+                } else if (searchKey === 'bag' || searchKey === 'hat') {
+                    return `Berikut perlengkapan aksesoris kami untuk kategori tersebut:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
                 }
-                return `Berikut daftar koleksi aksesoris kami:\n\n${listAksesoris}\n\nMau detail yang mana, Kak?`;
+                
+                return `Menu Aksesoris Adidas:
+1. *tas* - lihat koleksi tas & dompet
+2. *topi* - lihat koleksi topi
+3. *murah* - rekomendasi aksesoris termurah
+4. *mahal* - lihat aksesoris premium
+5. *laris* - aksesoris paling laku
+6. *rating tinggi* - rekomendasi pelanggan
+7. *checkout* - cara order
+
+Yuk balas dengan kata kunci di atas untuk melihat daftarnya!`;
             }
         }
         else {
