@@ -17,6 +17,7 @@ const ProductController = require('./Controllers/ProductController');
 const AccesoriesController = require('./Controllers/Category/AccesoriesController');
 const FootballController = require('./Controllers/Category/FootballController');
 const KidsController = require('./Controllers/Category/KidsController');
+const PriaController = require('./Controllers/Category/PriaController');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,6 +39,7 @@ const productController = new ProductController();
 const accesoriesController = new AccesoriesController();
 const footballController = new FootballController();
 const kidsController = new KidsController();
+const priaController = new PriaController();
 
 let client = null;
 let qrCodeData = null;
@@ -116,6 +118,7 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
         let isCategoryQuery = userQuery.includes("daftar aksesoris") || userQuery.includes("katalog: accesories");
         let isFootballQuery = userQuery.includes("daftar football") || userQuery.includes("daftar sepatu bola") || userQuery.includes("daftar jersey") || userQuery.includes("katalog: football");
         let isKidsQuery = userQuery.includes("daftar kids") || userQuery.includes("daftar anak") || userQuery.includes("katalog: kids_infant");
+        let isPriaQuery = userQuery.includes("daftar pria") || userQuery.includes("daftar baju") || userQuery.includes("daftar pakaian pria") || userQuery.includes("katalog: pakaian_pria");
 
         if (activeSession === 'football') {
             const footballKeywords = ['jersey', 'sepatu', 'boots', 'bola', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
@@ -132,6 +135,12 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
             if (userQuery.length < 50 && kidsKeywords.some(k => userQuery.includes(k))) {
                 isKidsQuery = true;
             }
+        } else if (activeSession === 'pakaian_pria') {
+            const priaKeywords = ['baju', 'kaos', 'tee', 'celana', 'pants', 'shorts', 'jaket', 'jacket', 'hoodie', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
+            if (userQuery.length < 50 && priaKeywords.some(k => userQuery.includes(k))) {
+            isPriaQuery = true;
+            }
+
         }
 
         if (isCategoryQuery) {
@@ -149,6 +158,11 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
             const daftarProdukKids = await kidsController.getChatbotPage(userQuery, searchKey, kidsDocs);
 
             return daftarProdukKids;
+            } else if (isPriaQuery) {
+             const priaDocs = datasetManager.getDatasetDocuments('pakaian_pria');
+             const daftarProdukPria = await priaController.getChatbotPage(userQuery, searchKey, priaDocs);
+             
+             return daftarProdukPria;
         } else if (matchedKeyword) {
             return knowledge.responses[matchedKeyword];
         } else {
@@ -295,6 +309,8 @@ from=${message.from}`);
                     userSessions.set(message.from, 'football');
                 } else if (keyword.includes("katalog: kids_infant") || keyword.includes("daftar kids") || keyword.includes("daftar anak")) {
                     userSessions.set(message.from, 'kids_infant');
+                } else if (keyword.includes("katalog: pakaian_pria") || keyword.includes("daftar pakaian pria") || keyword.includes("daftar pria")) {
+                    userSessions.set(message.from, 'pakaian_pria');
                 }
 
                 const activeSession = userSessions.get(message.from);
@@ -315,6 +331,11 @@ from=${message.from}`);
 
                     console.log("🔒 Filtering context: Only kids_infant.csv (Session-locked)");
                     contextDocuments = datasetManager.getDatasetDocuments('kids_infant');
+                
+                } else if (activeSession === 'pakaian_pria') {
+                    
+                    console.log("🔒 Filtering context: Only pakaian_pria.csv (Session-locked)");
+                    contextDocuments = datasetManager.getDatasetDocuments('pakaian_pria');
 
                 } else {
 
