@@ -763,3 +763,5 @@ app.get('/api/bot/info', (req, res) => {
     systemConfController.getBotInfo(req, res, isReady, client)
 });
 
+
+module.exports = app;
