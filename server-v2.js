@@ -17,6 +17,8 @@ const ProductController = require('./Controllers/ProductController');
 const AccesoriesController = require('./Controllers/Category/AccesoriesController');
 const FootballController = require('./Controllers/Category/FootballController');
 const KidsController = require('./Controllers/Category/KidsController');
+const TrainingController = require('./Controllers/TrainingController');
+
 const PriaController = require('./Controllers/Category/PriaController');
 
 const app = express();
@@ -39,6 +41,8 @@ const productController = new ProductController();
 const accesoriesController = new AccesoriesController();
 const footballController = new FootballController();
 const kidsController = new KidsController();
+const trainingController = new TrainingController();
+
 const priaController = new PriaController();
 
 let client = null;
@@ -118,6 +122,10 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
         let isCategoryQuery = userQuery.includes("daftar aksesoris") || userQuery.includes("katalog: accesories");
         let isFootballQuery = userQuery.includes("daftar football") || userQuery.includes("daftar sepatu bola") || userQuery.includes("daftar jersey") || userQuery.includes("katalog: football");
         let isKidsQuery = userQuery.includes("daftar kids") || userQuery.includes("daftar anak") || userQuery.includes("katalog: kids_infant");
+        let isTrainingQuery =
+    userQuery.includes("daftar training") ||
+    userQuery.includes("katalog: training") ||
+    userQuery.includes("training adidas");
         let isPriaQuery = userQuery.includes("daftar pria") || userQuery.includes("daftar baju") || userQuery.includes("daftar pakaian pria") || userQuery.includes("katalog: pakaian_pria");
 
         if (activeSession === 'football') {
@@ -143,20 +151,96 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
 
         }
 
-        if (isCategoryQuery) {
-            const aksesorisDocs = datasetManager.getDatasetDocuments('accesories');
-            const daftarProdukAksesoris = await accesoriesController.getChatbotPage(userQuery, searchKey, aksesorisDocs);
+        else if (activeSession === 'training') {
 
-            return daftarProdukAksesoris;
-        } else if (isFootballQuery) {
-            const footballDocs = datasetManager.getDatasetDocuments('football');
-            const daftarProdukFootball = await footballController.getChatbotPage(userQuery, searchKey, footballDocs);
+    const trainingKeywords = [
+        'shoes',
+        'sepatu',
+        'jacket',
+        'jaket',
+        'pants',
+        'celana',
+        'murah',
+        'mahal',
+        'laris',
+        'rating',
+        'terbaik',
+        'rekomendasi'
+    ];
 
-            return daftarProdukFootball;
-        } else if (isKidsQuery) {
-            const kidsDocs = datasetManager.getDatasetDocuments('kids_infant');
-            const daftarProdukKids = await kidsController.getChatbotPage(userQuery, searchKey, kidsDocs);
+    if (
+        userQuery.length < 50 &&
+        trainingKeywords.some(k => userQuery.includes(k))
+    ) {
+        isTrainingQuery = true;
+    }
+}
 
+       if (isCategoryQuery) {
+
+    const aksesorisDocs =
+        datasetManager.getDatasetDocuments('accesories');
+
+    const daftarProdukAksesoris =
+        await accesoriesController.getChatbotPage(
+            userQuery,
+            searchKey,
+            aksesorisDocs
+        );
+
+    return daftarProdukAksesoris;
+
+} else if (isFootballQuery) {
+
+    const footballDocs =
+        datasetManager.getDatasetDocuments('football');
+
+    const daftarProdukFootball =
+        await footballController.getChatbotPage(
+            userQuery,
+            searchKey,
+            footballDocs
+        );
+
+    return daftarProdukFootball;
+
+} else if (isKidsQuery) {
+
+    const kidsDocs =
+        datasetManager.getDatasetDocuments('kids_infant');
+
+    const daftarProdukKids =
+        await kidsController.getChatbotPage(
+            userQuery,
+            searchKey,
+            kidsDocs
+        );
+
+    return daftarProdukKids;
+
+} else if (isTrainingQuery) {
+
+    const trainingDocs =
+        datasetManager.getDatasetDocuments('training');
+
+    const daftarProdukTraining =
+        await trainingController.getChatbotPage(
+            userQuery,
+            searchKey,
+            trainingDocs
+        );
+
+    return daftarProdukTraining;
+
+} else if (matchedKeyword) {
+
+    return knowledge.responses[matchedKeyword];
+
+} else {
+
+
+
+            
             return daftarProdukKids;
             } else if (isPriaQuery) {
              const priaDocs = datasetManager.getDatasetDocuments('pakaian_pria');
@@ -312,23 +396,31 @@ from=${message.from}`);
                 } else if (keyword.includes("katalog: pakaian_pria") || keyword.includes("daftar pakaian pria") || keyword.includes("daftar pria")) {
                     userSessions.set(message.from, 'pakaian_pria');
                 }
+                else if (
+    keyword.includes("katalog: training") ||
+    keyword.includes("daftar training")
+) {
+
+    userSessions.set(message.from, 'training');
+}
 
                 const activeSession = userSessions.get(message.from);
 
-                let contextDocuments;
+let contextDocuments;
 
-                if (activeSession === 'accesories') {
+if (activeSession === 'accesories') {
 
-                    console.log("🔒 Filtering context: Only accesories.csv (Session-locked)");
-                    contextDocuments = datasetManager.getDatasetDocuments('accesories');
+    console.log("🔒 Filtering context: Only accesories.csv (Session-locked)");
 
-                } else if (activeSession === 'football') {
+    contextDocuments =
+        datasetManager.getDatasetDocuments('accesories');
 
-                    console.log("🔒 Filtering context: Only football.csv (Session-locked)");
-                    contextDocuments = datasetManager.getDatasetDocuments('football');
+} else if (activeSession === 'football') {
 
-                } else if (activeSession === 'kids_infant') {
+    console.log("🔒 Filtering context: Only football.csv (Session-locked)");
 
+    contextDocuments =
+        datasetManager.getDatasetDocuments('football');
                     console.log("🔒 Filtering context: Only kids_infant.csv (Session-locked)");
                     contextDocuments = datasetManager.getDatasetDocuments('kids_infant');
                 
@@ -337,10 +429,25 @@ from=${message.from}`);
                     console.log("🔒 Filtering context: Only pakaian_pria.csv (Session-locked)");
                     contextDocuments = datasetManager.getDatasetDocuments('pakaian_pria');
 
-                } else {
+} else if (activeSession === 'kids_infant') {
 
-                    contextDocuments = datasetManager.getAllDocuments();
-                }
+    console.log("🔒 Filtering context: Only kids_infant.csv (Session-locked)");
+
+    contextDocuments =
+        datasetManager.getDatasetDocuments('kids_infant');
+
+} else if (activeSession === 'training') {
+
+    console.log("🔒 Filtering context: Only training.csv (Session-locked)");
+
+    contextDocuments =
+        datasetManager.getDatasetDocuments('training');
+
+} else {
+
+    contextDocuments =
+        datasetManager.getAllDocuments();
+}
 
 
                 const contextItems = ragEngine.retrieveContext(
