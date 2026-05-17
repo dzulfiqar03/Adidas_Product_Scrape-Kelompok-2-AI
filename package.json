@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server-v2.js",
     "dev": "nodemon server-v2.js",
-    "vite": "vite"
+    "vite": "vite",
+    "build": "vite build"
   },
   "keywords": [
     "whatsapp",
