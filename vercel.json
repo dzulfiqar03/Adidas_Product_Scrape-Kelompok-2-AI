@@ -2,11 +2,11 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/Product",
+      "source": "/product",
       "destination": "/Src/views/Product.html"
     },
     {
-      "source": "/WelcomePage",
+      "source": "/home",
       "destination": "/Src/views/WelcomePage.html"
     }
   ]
