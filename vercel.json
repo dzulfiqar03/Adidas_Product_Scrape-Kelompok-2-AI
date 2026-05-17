@@ -19,13 +19,13 @@
       "source": "/",
       "destination": "/index.html"
     },
-    {
+{
       "source": "/product",
-      "destination": "/Src/views/Product.html"
+      "destination": "/Public/Src/views/Product.html"
     },
     {
       "source": "/home",
-      "destination": "/Src/views/WelcomePage.html"
+      "destination": "/Public/Src/views/WelcomePage.html"
     }
   ]
 }
