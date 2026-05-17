@@ -6,14 +6,14 @@
       "use": "@vercel/static-build"
     },
     {
-      "src": "server-2.js",
+      "src": "server-v2.js",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "server-2.js"
+      "destination": "server-v2.js"
     },
     {
       "source": "/",
