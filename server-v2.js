@@ -16,6 +16,7 @@ const SystemConfigurationController = require('./Controllers/SystemConfiguration
 const ProductController = require('./Controllers/ProductController');
 const AccesoriesController = require('./Controllers/Category/AccesoriesController');
 const FootballController = require('./Controllers/Category/FootballController');
+const KidsController = require('./Controllers/Category/KidsController');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,6 +37,7 @@ const systemConfController = new SystemConfigurationController();
 const productController = new ProductController();
 const accesoriesController = new AccesoriesController();
 const footballController = new FootballController();
+const kidsController = new KidsController();
 
 let client = null;
 let qrCodeData = null;
@@ -113,6 +115,7 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
 
         let isCategoryQuery = userQuery.includes("daftar aksesoris") || userQuery.includes("katalog: accesories");
         let isFootballQuery = userQuery.includes("daftar football") || userQuery.includes("daftar sepatu bola") || userQuery.includes("daftar jersey") || userQuery.includes("katalog: football");
+        let isKidsQuery = userQuery.includes("daftar kids") || userQuery.includes("daftar anak") || userQuery.includes("katalog: kids_infant");
 
         if (activeSession === 'football') {
             const footballKeywords = ['jersey', 'sepatu', 'boots', 'bola', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
@@ -123,6 +126,11 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
             const accKeywords = ['tas', 'bag', 'topi', 'hat', 'cap', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
             if (userQuery.length < 50 && accKeywords.some(k => userQuery.includes(k))) {
                 isCategoryQuery = true;
+            }
+        } else if (activeSession === 'kids_infant') {
+            const kidsKeywords = ['baju', 'kaos', 'tee', 'sepatu', 'shoes', 'sandal', 'celana', 'murah', 'mahal', 'laris', 'rating', 'terbaik', 'rekomendasi'];
+            if (userQuery.length < 50 && kidsKeywords.some(k => userQuery.includes(k))) {
+                isKidsQuery = true;
             }
         }
 
@@ -136,6 +144,11 @@ async function getAIResponse(message, contextItems = [], behavior = null, active
             const daftarProdukFootball = await footballController.getChatbotPage(userQuery, searchKey, footballDocs);
 
             return daftarProdukFootball;
+        } else if (isKidsQuery) {
+            const kidsDocs = datasetManager.getDatasetDocuments('kids_infant');
+            const daftarProdukKids = await kidsController.getChatbotPage(userQuery, searchKey, kidsDocs);
+
+            return daftarProdukKids;
         } else if (matchedKeyword) {
             return knowledge.responses[matchedKeyword];
         } else {
@@ -280,6 +293,8 @@ from=${message.from}`);
                     userSessions.set(message.from, 'accesories');
                 } else if (keyword.includes("katalog: football") || keyword.includes("daftar football") || keyword.includes("daftar jersey") || keyword.includes("daftar sepatu bola")) {
                     userSessions.set(message.from, 'football');
+                } else if (keyword.includes("katalog: kids_infant") || keyword.includes("daftar kids") || keyword.includes("daftar anak")) {
+                    userSessions.set(message.from, 'kids_infant');
                 }
 
                 const activeSession = userSessions.get(message.from);
@@ -295,6 +310,11 @@ from=${message.from}`);
 
                     console.log("🔒 Filtering context: Only football.csv (Session-locked)");
                     contextDocuments = datasetManager.getDatasetDocuments('football');
+
+                } else if (activeSession === 'kids_infant') {
+
+                    console.log("🔒 Filtering context: Only kids_infant.csv (Session-locked)");
+                    contextDocuments = datasetManager.getDatasetDocuments('kids_infant');
 
                 } else {
 
