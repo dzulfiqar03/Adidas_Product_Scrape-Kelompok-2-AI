@@ -1,6 +1,24 @@
 {
   "cleanUrls": true,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    },
+    {
+      "src": "server-2.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "server-2.js"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
     {
       "source": "/product",
       "destination": "/Src/views/Product.html"
