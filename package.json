@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server-v2.js",
     "dev": "nodemon server-v2.js",
-    "vite": "vite"
+    "vite": "vite",
+    "build": "vite build"
   },
   "keywords": [
     "whatsapp",
@@ -26,7 +27,7 @@
     "postcss": "^8.5.14",
     "qrcode-terminal": "^0.12.0",
     "tailwindcss": "^4.3.0",
-    "whatsapp-web.js": "^1.25.0",
+    "whatsapp-web.js": "^1.34.7",
     "xlsx": "^0.18.5"
   },
   "description": "",

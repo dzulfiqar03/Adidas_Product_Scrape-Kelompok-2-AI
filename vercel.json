@@ -1,0 +1,13 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/product",
+      "destination": "/Src/views/Product.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/Src/views/WelcomePage.html"
+    }
+  ]
+}
