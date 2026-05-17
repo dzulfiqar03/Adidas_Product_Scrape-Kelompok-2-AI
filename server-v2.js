@@ -659,20 +659,20 @@ app.post('/api/behavior', (req, res) => {
         res.status(500).json({ message: 'Error: ' + error.message });
     }
 });
-// app.listen(PORT, () => {
-//     console.log(` Server berjalan di http://localhost:${PORT}`);
-//     console.log(` Admin Dashboard: http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(` Server berjalan di http://localhost:${PORT}`);
+    console.log(` Admin Dashboard: http://localhost:${PORT}`);
 
-//     console.log(` Datasets loaded:
-// ${datasetManager.listDatasets().length}`);
-//     if (process.env.AUTO_START_BOT !== 'false') {
-//         setTimeout(() => {
-//             startBot().catch(error => {
-//                 console.error('Error auto-starting bot:', error.message);
-//             });
-//         }, 500);
-//     }
-// });
+    console.log(` Datasets loaded:
+${datasetManager.listDatasets().length}`);
+    if (process.env.AUTO_START_BOT !== 'false') {
+        setTimeout(() => {
+            startBot().catch(error => {
+                console.error('Error auto-starting bot:', error.message);
+            });
+        }, 500);
+    }
+});
 
 
 app.get('/product', (req, res) => {
