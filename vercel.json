@@ -15,17 +15,22 @@
       "source": "/api/(.*)",
       "destination": "server-v2.js"
     },
+
     {
-      "source": "/",
-      "destination": "/index.html"
-    },
-{
       "source": "/product",
       "destination": "/Public/Src/views/Product.html"
     },
     {
       "source": "/home",
       "destination": "/Public/Src/views/WelcomePage.html"
+    },
+    {
+      "source": "/",
+      "destination": "/Public/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/Public/$1"
     }
   ]
 }
